@@ -1,10 +1,10 @@
 import httpx
 
 
-async def get_coordinates(country: str) -> dict:
+async def get_coordinates(city: str) -> dict:
     async with httpx.AsyncClient() as client:
         response = await client.get(
-            f"https://geocoding-api.open-meteo.com/v1/search?name={country}&count=1&language=en&format=json"
+            f"https://geocoding-api.open-meteo.com/v1/search?name={city}&count=1&language=en&format=json"
         )
         return response.json()
 
