@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Skies — My Saved Weather</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --card: #111827;
+    --border: #1e2d45;
+    --accent: #38bdf8;
+    --accent2: #818cf8;
+    --text: #f0f4ff;
+    --muted: #64748b;
+    --error: #f87171;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  .bg-orbs { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+  .orb { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.1; animation: drift 12s ease-in-out infinite alternate; }
+  .orb1 { width: 400px; height: 400px; background: var(--accent2); top: -80px; left: -80px; }
+  .orb2 { width: 350px; height: 350px; background: var(--accent); bottom: -60px; right: -60px; animation-delay: -6s; }
+  @keyframes drift { from { transform: translate(0,0); } to { transform: translate(20px,15px); } }
+
+  nav {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,14,26,0.8);
+    backdrop-filter: blur(12px);
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 8px; align-items: center; }
+  .nav-btn {
+    padding: 8px 18px;
+    border-radius: 10px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text);
+  }
+  .nav-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .nav-btn.primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-color: transparent;
+    color: #fff;
+  }
+
+  main {
+    position: relative; z-index: 1;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 16px;
+  }
+
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 32px;
+  }
+  .page-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 32px;
+    letter-spacing: -0.5px;
+  }
+  .page-subtitle { color: var(--muted); font-size: 14px; margin-top: 4px; font-style: italic; }
+  .count-badge {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  /* Grid */
+  .records-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+  }
+
+  .record-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    animation: fadeUp 0.4s ease both;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .record-card::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    background: radial-gradient(circle, rgba(56,189,248,0.08), transparent 70%);
+    border-radius: 50%;
+  }
+  .record-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .record-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+  .record-city {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+  }
+  .record-country { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .record-emoji { font-size: 32px; }
+
+  .record-temp {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 16px;
+  }
+  .record-temp span { font-size: 18px; font-weight: 600; }
+
+  .record-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .stat {
+    text-align: center;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 6px;
+  }
+  .stat .label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .stat .value {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--accent);
+  }
+
+  .record-time {
+    margin-top: 14px;
+    font-size: 11px;
+    color: var(--muted);
+    text-align: right;
+    font-style: italic;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    display: none;
+  }
+  .empty-state.visible { display: block; }
+  .empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.4; }
+  .empty-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    margin-bottom: 8px;
+  }
+  .empty-text { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.9; }
+
+  .loading-state {
+    text-align: center;
+    padding: 60px;
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .error-msg {
+    text-align: center;
+    padding: 40px;
+    color: var(--error);
+    background: rgba(248,113,113,0.05);
+    border: 1px solid rgba(248,113,113,0.2);
+    border-radius: 16px;
+  }
+</style>
+</head>
+<body>
+
+<div class="bg-orbs">
+  <div class="orb orb1"></div>
+  <div class="orb orb2"></div>
+</div>
+
+<nav>
+  <a class="nav-logo" href="weather.html">🌤️ Skies</a>
+  <div class="nav-links">
+    <a class="nav-btn primary" href="weather.html">Search Weather</a>
+    <button class="nav-btn" onclick="logout()">Sign Out</button>
+  </div>
+</nav>
+
+<main>
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">My Collection</h1>
+      <p class="page-subtitle">Your saved weather snapshots</p>
+    </div>
+    <div class="count-badge" id="countBadge">— saved</div>
+  </div>
+
+  <div id="content">
+    <div class="loading-state">Loading your records...</div>
+  </div>
+</main>
+
+<script>
+  const API = "http://localhost:8000/api";
+  const token = localStorage.getItem('token');
+  if (!token) window.location.href = 'index.html';
+
+  function logout() {
+    localStorage.removeItem('token');
+    window.location.href = 'index.html';
+  }
+
+  function getWeatherEmoji(temp) {
+    if (temp >= 35) return '🔥';
+    if (temp >= 28) return '☀️';
+    if (temp >= 20) return '⛅';
+    if (temp >= 10) return '🌥️';
+    if (temp >= 0)  return '🧥';
+    return '❄️';
+  }
+
+  function formatTime(timeStr) {
+    if (!timeStr) return '—';
+    try {
+        return new Date(timeStr).toLocaleString(undefined, {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    } catch { return String(timeStr); }
+}
+
+  function renderCard(r, index) {
+    return `
+      <div class="record-card" style="animation-delay: ${index * 0.07}s">
+        <div class="record-top">
+          <div>
+            <div class="record-city">${r.city}</div>
+            <div class="record-country">${r.country ?? ''}</div>
+          </div>
+          <div class="record-emoji">${getWeatherEmoji(r.temperature)}</div>
+        </div>
+        <div class="record-temp">${r.temperature}<span>°C</span></div>
+        <div class="record-stats">
+          <div class="stat">
+            <div class="label">Feels Like</div>
+            <div class="value">${r.feels_like}°</div>
+          </div>
+          <div class="stat">
+            <div class="label">Humidity</div>
+            <div class="value">${r.humidity}%</div>
+          </div>
+          <div class="stat">
+            <div class="label">Wind</div>
+            <div class="value">${r.wind ?? '—'}</div>
+          </div>
+        </div>
+        <div class="record-time">${formatTime(r.time)}</div>
+      </div>
+    `;
+  }
+
+  async function loadHistory() {
+    try {
+      const res = await fetch(`${API}/weather/history`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (res.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = 'index.html';
+        return;
+      }
+
+      const data = await res.json();
+      const content = document.getElementById('content');
+      const badge = document.getElementById('countBadge');
+
+      if (!res.ok) {
+        content.innerHTML = `<div class="error-msg">Could not load records: ${data.detail || 'Unknown error'}</div>`;
+        return;
+      }
+
+      badge.textContent = `${data.length} saved`;
+
+      if (data.length === 0) {
+        content.innerHTML = `
+          <div class="empty-state visible">
+            <div class="empty-icon">🌍</div>
+            <div class="empty-title">No saved weather yet</div>
+            <div class="empty-text">Search for a city and save it to see it here</div>
+            <a class="btn" href="weather.html">Search Weather</a>
+          </div>`;
+        return;
+      }
+
+      content.innerHTML = `<div class="records-grid">${data.map(renderCard).join('')}</div>`;
+    } catch (e) {
+      document.getElementById('content').innerHTML =
+        `<div class="error-msg">Could not connect to server.</div>`;
+    }
+  }
+
+  loadHistory();
+</script>
+</body>
+</html>
