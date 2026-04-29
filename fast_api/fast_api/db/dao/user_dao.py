@@ -4,20 +4,15 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fast_api.db.dependencies import get_db_session
 from fast_api.db.models.user_model import User
+from fast_api.services.auth import hash_password, verify_password
 
 
 class UserDAO:
     def __init__(self, session: AsyncSession = Depends(get_db_session)) -> None:
         self.session = session
 
-    def _hash_password(self, password: str) -> str:
-        return bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-
-    def verify_password(self, plain: str, hashed: str) -> bool:
-        return bcrypt.checkpw(plain.encode(), hashed.encode())
-
     async def create_user(self, email: str, password: str, username: str | None = None) -> User:
-        hashed = self._hash_password(password)
+        hashed = hash_password(password)
         user = User(email=email, hashed_password=hashed, username=username)
         self.session.add(user)
         await self.session.flush()
